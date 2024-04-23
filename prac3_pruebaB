@@ -1,0 +1,697 @@
+classdef prac3_pruebaB < matlab.apps.AppBase
+
+    % Properties that correspond to app components
+    properties (Access = public)
+        UIFigure                        matlab.ui.Figure
+        TabGroup                        matlab.ui.container.TabGroup
+        SealesTab                       matlab.ui.container.Tab
+        omegaEditField                  matlab.ui.control.NumericEditField
+        omegaEditFieldLabel             matlab.ui.control.Label
+        alphaEditField                  matlab.ui.control.NumericEditField
+        alphaEditFieldLabel             matlab.ui.control.Label
+        HastaEditField                  matlab.ui.control.NumericEditField
+        HastaEditFieldLabel             matlab.ui.control.Label
+        DesdeEditField                  matlab.ui.control.NumericEditField
+        DesdeEditFieldLabel             matlab.ui.control.Label
+        DesplazamientoEditField         matlab.ui.control.NumericEditField
+        DesplazamientoEditFieldLabel    matlab.ui.control.Label
+        PeriodosEditField               matlab.ui.control.NumericEditField
+        PeriodosEditFieldLabel          matlab.ui.control.Label
+        FrecuenciadeMuestreoEditField   matlab.ui.control.NumericEditField
+        FrecuenciadeMuestreoEditFieldLabel  matlab.ui.control.Label
+        FrecuenciaFundamentalEditField  matlab.ui.control.NumericEditField
+        FrecuenciaFundamentalEditFieldLabel  matlab.ui.control.Label
+        AmplitudEditField               matlab.ui.control.NumericEditField
+        AmplitudEditFieldLabel          matlab.ui.control.Label
+        LimpiarButton                   matlab.ui.control.Button
+        Switch                          matlab.ui.control.Switch
+        Label                           matlab.ui.control.Label
+        SealDropDown                    matlab.ui.control.DropDown
+        SealDropDownLabel               matlab.ui.control.Label
+        UIAxes_3                        matlab.ui.control.UIAxes
+        UIAxes_2                        matlab.ui.control.UIAxes
+        UIAxes                          matlab.ui.control.UIAxes
+    end
+
+    
+    properties (Access = public)
+        alpha = 1;
+        omega = 1;
+      
+    end
+    
+    methods (Access = public)
+        
+         function [senial, par, impar] = makeSenial(app, argumento, tipo)
+            switch tipo
+                case "cuadrada"
+                    senial = square(argumento);
+                    senial_not = square(- argumento);
+                case "sierra"
+                    senial = sawtooth(argumento,.5);
+                    senial_not = sawtooth(- argumento,.5);
+                case "senoidal"
+                    senial = sin(argumento);
+                    senial_not = sin(- argumento);
+                case "exp creciente"
+                    senial = exp(app.alpha*argumento);
+                    senial_not = exp(- app.alpha*argumento);
+                case "exp decreciente"
+                    senial = exp(-app.alpha*argumento);
+                    senial_not = exp(app.alpha*argumento);
+                case "escalon"
+                    senial = heaviside(argumento);
+                    senial_not = heaviside(- argumento);
+                case "impulso"
+                    senial = generarImpulsoUnitario(app, argumento);
+                    senial_not = generarImpulsoUnitario(app, - argumento);
+                case "rampa"
+                    senial = generarRampa(app, argumento);
+                    senial_not = generarRampa(app, - argumento);
+                case "triangulo"
+                    senial = generarTriangulo(app, argumento, 10);
+                    senial_not = generarTriangulo(app, - argumento, 10);
+                case "senoidal com"
+                    senial = exp(app.alpha * argumento).*cos(app.omega * argumento);
+                    senial_not = exp(-app.alpha * argumento).*cos(-app.omega * argumento);
+                case "rectangulo"
+                    senial = generarRectangulo(app, argumento, 10);
+                    senial_not = generarRectangulo(app, - argumento, 10);
+                case "exp compleja"
+                    senial = generarExponencialCompleja(app, argumento);
+                    senial_not = generarExponencialCompleja(app, - argumento);
+                otherwise
+                    cla(app.UIAxes)
+                    %cla(app.UIAxes_2)
+                    %cla(app.UIAxes_3)
+            end
+            par = (senial + senial_not)/2;
+            impar = (senial - senial_not)/2;
+        end
+        
+        function graficar3(app, modo, A, x, senial, par, impar)
+            if modo == 0
+                plot(app.UIAxes,x,A*senial)
+                plot(app.UIAxes_2,x,A*par)
+                plot(app.UIAxes_3,x,A*impar)
+            elseif modo == 1
+                stem(app.UIAxes,x,A*senial)
+                stem(app.UIAxes_2,x,A*par)
+                stem(app.UIAxes_3,x,A*impar)
+            end
+
+        end
+        
+        function impulso = generarImpulsoUnitario(app, tiempo)
+            % Inicializar la señal de impulso
+            impulso = zeros(size(tiempo));
+            
+            % Definir el valor del impulso unitario
+            valorImpulso = 1;
+            
+            % Encontrar el índice en el tiempo más cercano a t = 0
+            indiceT0 = find(tiempo == 0, 1);
+            
+            % Asignar el valor del impulso unitario en t = 0
+            impulso(indiceT0) = valorImpulso;
+        end
+        
+        function rampa = generarRampa(app,tiempo)
+            % Inicializar la señal de rampa
+            rampa = zeros(size(tiempo));
+            
+            % Encontrar el índice en el tiempo más cercano a t = 0
+            indiceT0 = find(tiempo == 0, 1);
+            
+            % Asignar la pendiente de la rampa
+            pendiente = 1;
+            
+            % Calcular la señal de rampa
+            rampa(indiceT0:end) = pendiente * tiempo(indiceT0:end);
+        end
+        
+        function triangulo = generarTriangulo(app, tiempo, periodo)
+            % Inicializar la señal de triángulo
+            triangulo = zeros(size(tiempo));
+            
+            % Encontrar el índice en el tiempo más cercano a t = 0
+            indiceT0 = find(tiempo == 0, 1);
+            
+            % Definir la amplitud del triángulo
+            amplitud = 1;
+            
+            % Calcular la señal de triángulo
+            for i = indiceT0:length(tiempo)
+                t = tiempo(i);
+                triangulo(i) = amplitud * (1 - 2 * abs(mod(t / periodo, 1) - 0.5));
+            end
+        end
+        
+        function rectangulo = generarRectangulo(app, tiempo, ancho)
+            % Inicializar la señal de rectángulo
+            rectangulo = zeros(size(tiempo));
+            
+            % Encontrar el índice en el tiempo más cercano a t = 0
+            indiceT0 = find(tiempo == 0, 1);
+            
+            % Definir la amplitud del rectángulo
+            amplitud = 1;
+            
+            % Calcular la señal de rectángulo
+            for i = indiceT0:length(tiempo)
+                t = tiempo(i);
+                if abs(t) <= ancho / 2
+                    rectangulo(i) = amplitud;
+                end
+            end
+        end
+
+        function exponencialCompleja = generarExponencialCompleja(app, tiempo)
+            % Inicializar la señal de exponencial compleja
+            exponencialCompleja = zeros(size(tiempo));
+            
+            % Calcular la señal de exponencial compleja
+            for i = 1:length(tiempo)
+                t = tiempo(i);
+                exponencialCompleja(i) = exp(1i * (2 * pi * t));
+            end
+        end
+
+
+    end
+    
+
+    % Callbacks that handle component events
+    methods (Access = private)
+
+        % Callback function: AmplitudEditField, DesdeEditField, 
+        % ...and 10 other components
+        function GraficarButtonPushed(app, event)
+            app.UIAxes.Title.Color = "w";
+            app.UIAxes_2.Title.Color = "w";
+            app.UIAxes_3.Title.Color = "w";
+
+            A = app.AmplitudEditField.Value;
+            Fs = app.FrecuenciadeMuestreoEditField.Value;
+            f = app.FrecuenciaFundamentalEditField.Value;
+            T = app.PeriodosEditField.Value;
+            Lim_inf = app.DesdeEditField.Value;
+            Lim_sup = app.HastaEditField.Value;
+            xlim(app.UIAxes,[Lim_inf, T*Lim_sup])
+            t = Lim_inf:1/Fs:(T* Lim_sup);
+            n = Lim_inf:(1/Fs)*10:(T*Lim_sup);
+            D = app.DesplazamientoEditField.Value;
+            % n = 0:T;
+            f2 = f/80;
+            %n = 0:(3*(1/f2));
+            phi=pi/2;
+            r=1.5;
+            app.alpha = app.alphaEditField.Value;
+            app.omega = app.omegaEditField.Value;
+     
+            opcion = app.SealDropDown.Value;
+            if(opcion == "Seleccione una opcion")
+                cla(app.UIAxes)
+                app.UIAxes.Title.String="";
+            elseif(opcion == "Cuadrada")
+                app.UIAxes.Title.String="Cuadrada";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "cuadrada");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "cuadrada");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Diente de Sierra")
+                app.UIAxes.Title.String="Diente de Sierra";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "sierra");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "sierra");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Senoidal")
+                app.UIAxes.Title.String="Senoidal";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "senoidal");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "senoidal");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Exponencial creciente")
+                app.UIAxes.Title.String="Exponencial Creciente";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "exp creciente");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "exp creciente");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Exponencial decreciente")
+                app.UIAxes.Title.String="Exponencial Decreciente";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "exp decreciente");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "exp decreciente");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Escalon")
+                app.UIAxes.Title.String="Escalon";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                n2=0:10*f;
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "escalon");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "escalon");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Impulso")
+                
+                app.UIAxes.Title.String="Impulso";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                if(app.Switch.Value == "Discreto")
+%                     stem(app.UIAxes,A.*[zeros(1,3),ones(1,1),zeros(1,2)])
+                    
+                    [senial, par, impar] = makeSenial(app, f*n + D, "impulso");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                
+                else
+                    warndlg("Esta funcion no esta disponible en representacion Continua")
+                    app.Switch.Value = 'Discreto';
+                    cla(app.UIAxes)
+                end
+            elseif(opcion == "Rampa")
+                app.UIAxes.Title.String="Rampa";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                t11=0:1/Fs:5*f;
+                n11=0:5*f;
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "rampa");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "rampa");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            
+            elseif(opcion == "Triangulo")
+                app.UIAxes.Title.String="Triangulo";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                t13= linspace(-1, 1, 100);
+                width = 10; % Ancho de la función triangular
+                tri= tripuls(t13, width);
+                tri2= tripuls(t13, 2);
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "triangulo");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "triangulo");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Senoidal Compleja")
+                app.UIAxes.Title.String="Senoidal Compleja";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                y = exp(-t) .* cos(2*pi*t);
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "senoidal com");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "senoidal com");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Rectangulo")
+                app.UIAxes.Title.String="Rectangulo / Pulso Unitario";
+                app.UIAxes.XLabel.String="Tiempo";
+                app.UIAxes.YLabel.String="f(t)";
+                t12 = linspace(-1, 1, 100);
+                u = abs(t12) < 0.5;
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "rectangulo");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "rectangulo");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+            elseif(opcion == "Exponencial compleja")
+                app.UIAxes.Title.String="Exponencial Compleja";
+                cla(app.UIAxes)
+                % 
+                % tc = -1.5*pi:1/Fs:1.5*pi;
+                % nc = -1.5*pi:0.1:1.5*pi;
+                % funcioon = A*exp(1j.*(f* 2.*tc+(pi/4)));
+                % xRE = real(funcioon);
+                % xIM = imag(funcioon);
+                % xMAG = abs(funcioon);
+                % xARG = atan(imag(funcioon)./real(funcioon));
+                % hold(app.UIAxes,"on")
+
+                if(app.Switch.Value == "Continuo")
+                    [senial, par, impar] = makeSenial(app, f*t+D, "exp compleja");
+                    graficar3(app, 0, A, t, senial, par, impar)
+                else
+                    [senial, par, impar] = makeSenial(app, f*n+D, "exp compleja");
+                    graficar3(app, 1, A, n, senial, par, impar)
+                end
+
+                % if(app.Switch.Value == "Continuo")
+                %     plot(app.UIAxes,xRE,"-r")
+                % 
+                %     plot(app.UIAxes,xIM,"-b")
+                %     plot(app.UIAxes,xMAG,"-m")
+                %     plot(app.UIAxes,xARG,"-y")
+                % 
+                % else
+                %     funcioon = A*exp(1j.*(f* 2.*nc+(pi/4)));
+                %     xRE = real(funcioon);
+                %     xIM = imag(funcioon);
+                %     xMAG = abs(funcioon);
+                %     xARG = atan(imag(funcioon)./real(funcioon));
+                %     stem(app.UIAxes,xRE,"-r")
+                % 
+                %     stem(app.UIAxes,xIM,"-b")
+                %     stem(app.UIAxes,xMAG,"-m")
+                %     stem(app.UIAxes,xARG,"-y")
+                % 
+                % end
+                % hold(app.UIAxes,"off")
+
+                
+
+            end
+
+        end
+
+        % Callback function
+        function Slider2ValueChanging(app, event)
+            changingValue = event.Value;
+            
+        end
+
+        % Button pushed function: LimpiarButton
+        function LimpiarButtonPushed(app, event)
+            cla(app.UIAxes)
+            app.UIAxes.YLim=[-1,1];
+            cla(app.UIAxes_2)
+            app.UIAxes_2.YLim=[-1,1];
+        end
+    end
+
+    % Component initialization
+    methods (Access = private)
+
+        % Create UIFigure and components
+        function createComponents(app)
+
+            % Create UIFigure and hide until all components are created
+            app.UIFigure = uifigure('Visible', 'off');
+            app.UIFigure.Position = [97 97 1017 580];
+            app.UIFigure.Name = 'MATLAB App';
+
+            % Create TabGroup
+            app.TabGroup = uitabgroup(app.UIFigure);
+            app.TabGroup.Position = [2 1 1016 580];
+
+            % Create SealesTab
+            app.SealesTab = uitab(app.TabGroup);
+            app.SealesTab.SizeChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.SealesTab.Title = 'Señales';
+            app.SealesTab.BackgroundColor = [0.9412 0.9412 0.9412];
+            app.SealesTab.Scrollable = 'on';
+
+            % Create UIAxes
+            app.UIAxes = uiaxes(app.SealesTab);
+            title(app.UIAxes, 'Title')
+            xlabel(app.UIAxes, 'X')
+            ylabel(app.UIAxes, 'Y')
+            zlabel(app.UIAxes, 'Z')
+            app.UIAxes.FontWeight = 'bold';
+            app.UIAxes.XMinorTick = 'on';
+            app.UIAxes.YMinorTick = 'on';
+            app.UIAxes.Color = [0.149 0.149 0.149];
+            app.UIAxes.YGrid = 'on';
+            app.UIAxes.Position = [254 123 561 306];
+
+            % Create UIAxes_2
+            app.UIAxes_2 = uiaxes(app.SealesTab);
+            xlabel(app.UIAxes_2, 'i')
+            ylabel(app.UIAxes_2, 'k')
+            app.UIAxes_2.AmbientLightColor = 'none';
+            app.UIAxes_2.Color = [0.9412 0.9412 0.9412];
+            app.UIAxes_2.ColorOrder = [0.941176470588235 0.941176470588235 0.941176470588235;0.941176470588235 0.941176470588235 0.941176470588235;0.941176470588235 0.941176470588235 0.941176470588235;0.494117647058824 0.184313725490196 0.556862745098039;0.466666666666667 0.674509803921569 0.188235294117647;0.301960784313725 0.745098039215686 0.933333333333333;0.635294117647059 0.0784313725490196 0.184313725490196];
+            app.UIAxes_2.HandleVisibility = 'off';
+            app.UIAxes_2.PickableParts = 'none';
+            colormap(app.UIAxes_2, 'gray')
+            app.UIAxes_2.Position = [933 176 18 14];
+
+            % Create UIAxes_3
+            app.UIAxes_3 = uiaxes(app.SealesTab);
+            xlabel(app.UIAxes_3, 'i')
+            ylabel(app.UIAxes_3, 'k')
+            app.UIAxes_3.Color = [0.9412 0.9412 0.9412];
+            app.UIAxes_3.ColorOrder = [0.941176470588235 0.941176470588235 0.941176470588235;0.941176470588235 0.941176470588235 0.941176470588235;0.941176470588235 0.941176470588235 0.941176470588235;0.494117647058824 0.184313725490196 0.556862745098039;0.466666666666667 0.674509803921569 0.188235294117647;0.301960784313725 0.745098039215686 0.933333333333333;0.635294117647059 0.0784313725490196 0.184313725490196];
+            app.UIAxes_3.HandleVisibility = 'off';
+            app.UIAxes_3.PickableParts = 'none';
+            colormap(app.UIAxes_3, 'gray')
+            app.UIAxes_3.Position = [930 254 21 16];
+
+            % Create SealDropDownLabel
+            app.SealDropDownLabel = uilabel(app.SealesTab);
+            app.SealDropDownLabel.BackgroundColor = [0.149 0.149 0.149];
+            app.SealDropDownLabel.HorizontalAlignment = 'center';
+            app.SealDropDownLabel.FontName = 'Times New Roman';
+            app.SealDropDownLabel.FontSize = 30;
+            app.SealDropDownLabel.FontColor = [1 1 1];
+            app.SealDropDownLabel.Position = [244 479 133 48];
+            app.SealDropDownLabel.Text = 'Señal';
+
+            % Create SealDropDown
+            app.SealDropDown = uidropdown(app.SealesTab);
+            app.SealDropDown.Items = {'Seleccione una opcion', 'Cuadrada', 'Diente de Sierra', 'Senoidal', 'Senoidal Compleja', 'Exponencial creciente', 'Exponencial decreciente', 'Escalon', 'Impulso', 'Rampa', 'Rectangulo', 'Triangulo', 'Exponencial compleja'};
+            app.SealDropDown.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.SealDropDown.FontName = 'Times New Roman';
+            app.SealDropDown.FontSize = 30;
+            app.SealDropDown.FontColor = [1 1 1];
+            app.SealDropDown.BackgroundColor = [0.149 0.149 0.149];
+            app.SealDropDown.Position = [386 488 393 39];
+            app.SealDropDown.Value = 'Seleccione una opcion';
+
+            % Create Label
+            app.Label = uilabel(app.SealesTab);
+            app.Label.HorizontalAlignment = 'center';
+            app.Label.FontName = 'Times New Roman';
+            app.Label.FontSize = 24;
+            app.Label.Position = [905 293 25 31];
+            app.Label.Text = '';
+
+            % Create Switch
+            app.Switch = uiswitch(app.SealesTab, 'slider');
+            app.Switch.Items = {'Discreto', 'Continuo'};
+            app.Switch.Orientation = 'vertical';
+            app.Switch.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.Switch.FontName = 'Times New Roman';
+            app.Switch.FontSize = 24;
+            app.Switch.Position = [865 339 47 105];
+            app.Switch.Value = 'Discreto';
+
+            % Create LimpiarButton
+            app.LimpiarButton = uibutton(app.SealesTab, 'push');
+            app.LimpiarButton.ButtonPushedFcn = createCallbackFcn(app, @LimpiarButtonPushed, true);
+            app.LimpiarButton.BackgroundColor = [0.149 0.149 0.149];
+            app.LimpiarButton.FontName = 'Times New Roman';
+            app.LimpiarButton.FontSize = 24;
+            app.LimpiarButton.FontColor = [1 1 1];
+            app.LimpiarButton.Position = [834 499 100 38];
+            app.LimpiarButton.Text = 'Limpiar';
+
+            % Create AmplitudEditFieldLabel
+            app.AmplitudEditFieldLabel = uilabel(app.SealesTab);
+            app.AmplitudEditFieldLabel.HorizontalAlignment = 'right';
+            app.AmplitudEditFieldLabel.FontWeight = 'bold';
+            app.AmplitudEditFieldLabel.Position = [105 327 57 22];
+            app.AmplitudEditFieldLabel.Text = 'Amplitud';
+
+            % Create AmplitudEditField
+            app.AmplitudEditField = uieditfield(app.SealesTab, 'numeric');
+            app.AmplitudEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.AmplitudEditField.FontWeight = 'bold';
+            app.AmplitudEditField.FontColor = [1 1 1];
+            app.AmplitudEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.AmplitudEditField.Position = [177 327 42 22];
+            app.AmplitudEditField.Value = 1;
+
+            % Create FrecuenciaFundamentalEditFieldLabel
+            app.FrecuenciaFundamentalEditFieldLabel = uilabel(app.SealesTab);
+            app.FrecuenciaFundamentalEditFieldLabel.HorizontalAlignment = 'right';
+            app.FrecuenciaFundamentalEditFieldLabel.FontWeight = 'bold';
+            app.FrecuenciaFundamentalEditFieldLabel.Position = [15 428 146 22];
+            app.FrecuenciaFundamentalEditFieldLabel.Text = 'Frecuencia Fundamental';
+
+            % Create FrecuenciaFundamentalEditField
+            app.FrecuenciaFundamentalEditField = uieditfield(app.SealesTab, 'numeric');
+            app.FrecuenciaFundamentalEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.FrecuenciaFundamentalEditField.FontWeight = 'bold';
+            app.FrecuenciaFundamentalEditField.FontColor = [1 1 1];
+            app.FrecuenciaFundamentalEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.FrecuenciaFundamentalEditField.Position = [176 428 42 22];
+            app.FrecuenciaFundamentalEditField.Value = 1;
+
+            % Create FrecuenciadeMuestreoEditFieldLabel
+            app.FrecuenciadeMuestreoEditFieldLabel = uilabel(app.SealesTab);
+            app.FrecuenciadeMuestreoEditFieldLabel.HorizontalAlignment = 'right';
+            app.FrecuenciadeMuestreoEditFieldLabel.FontWeight = 'bold';
+            app.FrecuenciadeMuestreoEditFieldLabel.Position = [18 387 142 22];
+            app.FrecuenciadeMuestreoEditFieldLabel.Text = 'Frecuencia de Muestreo';
+
+            % Create FrecuenciadeMuestreoEditField
+            app.FrecuenciadeMuestreoEditField = uieditfield(app.SealesTab, 'numeric');
+            app.FrecuenciadeMuestreoEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.FrecuenciadeMuestreoEditField.FontWeight = 'bold';
+            app.FrecuenciadeMuestreoEditField.FontColor = [1 1 1];
+            app.FrecuenciadeMuestreoEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.FrecuenciadeMuestreoEditField.Position = [175 387 42 22];
+            app.FrecuenciadeMuestreoEditField.Value = 100;
+
+            % Create PeriodosEditFieldLabel
+            app.PeriodosEditFieldLabel = uilabel(app.SealesTab);
+            app.PeriodosEditFieldLabel.HorizontalAlignment = 'right';
+            app.PeriodosEditFieldLabel.FontWeight = 'bold';
+            app.PeriodosEditFieldLabel.Position = [101 279 66 22];
+            app.PeriodosEditFieldLabel.Text = '# Periodos';
+
+            % Create PeriodosEditField
+            app.PeriodosEditField = uieditfield(app.SealesTab, 'numeric');
+            app.PeriodosEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.PeriodosEditField.FontWeight = 'bold';
+            app.PeriodosEditField.FontColor = [1 1 1];
+            app.PeriodosEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.PeriodosEditField.Position = [175 279 41 22];
+            app.PeriodosEditField.Value = 1;
+
+            % Create DesplazamientoEditFieldLabel
+            app.DesplazamientoEditFieldLabel = uilabel(app.SealesTab);
+            app.DesplazamientoEditFieldLabel.HorizontalAlignment = 'right';
+            app.DesplazamientoEditFieldLabel.FontWeight = 'bold';
+            app.DesplazamientoEditFieldLabel.Position = [71 233 96 22];
+            app.DesplazamientoEditFieldLabel.Text = 'Desplazamiento';
+
+            % Create DesplazamientoEditField
+            app.DesplazamientoEditField = uieditfield(app.SealesTab, 'numeric');
+            app.DesplazamientoEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.DesplazamientoEditField.FontWeight = 'bold';
+            app.DesplazamientoEditField.FontColor = [1 1 1];
+            app.DesplazamientoEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.DesplazamientoEditField.Position = [175 233 41 22];
+
+            % Create DesdeEditFieldLabel
+            app.DesdeEditFieldLabel = uilabel(app.SealesTab);
+            app.DesdeEditFieldLabel.HorizontalAlignment = 'right';
+            app.DesdeEditFieldLabel.FontWeight = 'bold';
+            app.DesdeEditFieldLabel.Position = [37 203 51 22];
+            app.DesdeEditFieldLabel.Text = 'Desde...';
+
+            % Create DesdeEditField
+            app.DesdeEditField = uieditfield(app.SealesTab, 'numeric');
+            app.DesdeEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.DesdeEditField.FontWeight = 'bold';
+            app.DesdeEditField.FontColor = [1 1 1];
+            app.DesdeEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.DesdeEditField.Position = [42 177 42 22];
+            app.DesdeEditField.Value = -1;
+
+            % Create HastaEditFieldLabel
+            app.HastaEditFieldLabel = uilabel(app.SealesTab);
+            app.HastaEditFieldLabel.HorizontalAlignment = 'right';
+            app.HastaEditFieldLabel.FontWeight = 'bold';
+            app.HastaEditFieldLabel.Position = [137 203 48 22];
+            app.HastaEditFieldLabel.Text = 'Hasta...';
+
+            % Create HastaEditField
+            app.HastaEditField = uieditfield(app.SealesTab, 'numeric');
+            app.HastaEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.HastaEditField.FontWeight = 'bold';
+            app.HastaEditField.FontColor = [1 1 1];
+            app.HastaEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.HastaEditField.Position = [143 176 42 22];
+            app.HastaEditField.Value = 1;
+
+            % Create alphaEditFieldLabel
+            app.alphaEditFieldLabel = uilabel(app.SealesTab);
+            app.alphaEditFieldLabel.HorizontalAlignment = 'right';
+            app.alphaEditFieldLabel.FontWeight = 'bold';
+            app.alphaEditFieldLabel.Position = [71 102 36 22];
+            app.alphaEditFieldLabel.Text = 'alpha';
+
+            % Create alphaEditField
+            app.alphaEditField = uieditfield(app.SealesTab, 'numeric');
+            app.alphaEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.alphaEditField.FontWeight = 'bold';
+            app.alphaEditField.FontColor = [1 1 1];
+            app.alphaEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.alphaEditField.Position = [125 102 42 22];
+            app.alphaEditField.Value = 1;
+
+            % Create omegaEditFieldLabel
+            app.omegaEditFieldLabel = uilabel(app.SealesTab);
+            app.omegaEditFieldLabel.HorizontalAlignment = 'right';
+            app.omegaEditFieldLabel.FontWeight = 'bold';
+            app.omegaEditFieldLabel.Position = [65 70 44 22];
+            app.omegaEditFieldLabel.Text = 'omega';
+
+            % Create omegaEditField
+            app.omegaEditField = uieditfield(app.SealesTab, 'numeric');
+            app.omegaEditField.ValueChangedFcn = createCallbackFcn(app, @GraficarButtonPushed, true);
+            app.omegaEditField.FontWeight = 'bold';
+            app.omegaEditField.FontColor = [1 1 1];
+            app.omegaEditField.BackgroundColor = [0.149 0.149 0.149];
+            app.omegaEditField.Position = [127 70 42 22];
+            app.omegaEditField.Value = 9;
+
+            % Show the figure after all components are created
+            app.UIFigure.Visible = 'on';
+        end
+    end
+
+    % App creation and deletion
+    methods (Access = public)
+
+        % Construct app
+        function app = prac3_pruebaB
+
+            % Create UIFigure and components
+            createComponents(app)
+
+            % Register the app with App Designer
+            registerApp(app, app.UIFigure)
+
+            if nargout == 0
+                clear app
+            end
+        end
+
+        % Code that executes before app deletion
+        function delete(app)
+
+            % Delete UIFigure when app is deleted
+            delete(app.UIFigure)
+        end
+    end
+end
